@@ -1,12 +1,13 @@
 % runHCCIexample
 close all
 clear all
+clc
 
 BuildRawDataBase = 1;
-LoadRawDataBase = 1;
+LoadRawDataBase = 0;
 RawDataBaseFileName = 'dbraw';
 
-BuildWorkDataBase = 0;
+BuildWorkDataBase = 1;
 LoadWorkDataBase = 0;
 WorkDataBaseFileName = 'db';
 
@@ -22,7 +23,7 @@ if BuildRawDataBase
 	ExcelProperties = {
 	% (path\)filename										1st header row		2nd header row
 	'../CFR_C3H8_scheme'					'Sheet1'			2					4
-	%'HCCI_group_2_mod'					'Sheet1'			2					5
+	'../CFR_CH4_scheme'					'Sheet1'			2					4
 	};
 
 	% list of variable names for the general data belonging to the 1st header
@@ -43,17 +44,14 @@ if BuildRawDataBase
 
 	% adding pressure files to the structure
 	dbraw.Pressure_file.val = cell(size(dbraw.Pressure_file.txt));
-	dbraw.motoring_file.val = cell(size(dbraw.Pressure_file.txt));
+	dbraw.Motoring_file.val = cell(size(dbraw.Pressure_file.txt));
 	dbraw.hi_res_pressure_file.val = cell(size(dbraw.Pressure_file.txt));
 	dbraw.Dp_flowmeter.val = cell(size(dbraw.Pressure_file.txt));
 	for i = 1:length(dbraw.Pressure_file.txt)
 
 		if ~isempty(dbraw.Pressure_file.txt{i})
-
-            dataPath = fullfile( dbraw.DAQ_folder.txt{i}, '..', 'C3H8 data', dbraw.Pressure_file.txt{i} );
-dbraw.Pressure_file.val{i} = dlmread( dataPath );
-			%dbraw.Pressure_file.val{i} = dlmread([dbraw.DAQ_folder.txt{i},'/',dbraw.Pressure_file.txt{i}]);
-			dbraw.motoring_file.val{i} = dlmread([dbraw.pressure_file_dir.txt{i},'/',dbraw.motoring_file.txt{i}]);
+			dbraw.Pressure_file.val{i} = dlmread(['..\',dbraw.DAQ_folder.txt{i},'\',dbraw.Pressure_file.txt{i},'.txt']);
+			dbraw.Motoring_file.val{i} = dlmread(['..\',dbraw.DAQ_folder.txt{i},'\',dbraw.Motoring_file.txt{i},'.txt']);
 
 		end
 
@@ -76,25 +74,48 @@ if BuildWorkDataBase
 	clear db
 
 	% engine specs
-	db.L = 0.160; % m
-	db.S = 0.085; % m
-	db.B = 0.085; % m
-	db.R = db.S/2; % m
-	db.Vd = pi/4*db.B^2*db.S; % m^3
-	db.CR = dbraw.CR.val; % m^3/m^3
-	db.Vc = db.Vd/(db.CR-1); % m^3
-	db.N = dbraw.N.val; % rpm
+	db.Engine.L = 0.254;                             % m
+	db.Engine.S = 0.1143;                            % m
+	db.Engine.B = 0.0826;                            % m
+	db.Engine.R = db.Engine.S/2;                     % m
+	db.Engine.Vd = pi/4*db.Engine.B^2*db.Engine.S;   % m^3
+    db.Engine.gamma = 1.35                           %[-] Heat capacity ratio
+	db.Engine.N = dbraw.Engine_speed.val(1);            % rpm
+
+
+	%db.CR = dbraw.CR.val;      % m^3/m^3
+	%db.Vc = db.Vd/(db.CR-1);   % m^3
 
 	% fuel specs
-	db.rho_diesel = 840; % g/L
+
 
 	% general data
-	db.totaltests = length(dbraw.run.val);
+	db.totaltests = length(dbraw.Test_nr.val);
+    
+    % Using custom functions to calculate important values
+    for i = 1:db.totaltests
+        %Loading pressure and motor file for each test run
+        fired_pressure_signal = dbraw.Pressure_file.val{i};
+        motored_pressure_signal = dbraw.Motoring_file.val{i};
+        
+        % Using functions to calculate desired values
+        [Final_Motored_signal,Final_Fired_signal, ave_pressure, Rep_index, theta] = process_engine_cycles(motored_pressure_signal, fired_pressure_signal, 0.5, 0.5, 10,48);
+        [IMEP, PMEP, V, AHRR, AHR, T] = EngineAnalysis(theta, ave_pressure, db.S, db.B, db.L, dbraw.CR.val(i), dbraw.T_intake.val(i), db.gamma)
+        
+        %Saving to db work file
+        db.AvePressure{i} = ave_pressure;
+        db.FinalMotoredSignal{i} = Final_Motored_signal;
+        db.FinalFiredSignal{i} = Final_Fired_signal;
 
-	% general calculations
-	db.mf_diesel = db.rho_diesel*dbraw.DV_diesel.val./dbraw.Dt_diesel.val/1000; % g/s
-	db.mf_DME = dbraw.Dm_DME.val./dbraw.Dt_DME.val; % g/s
-	db.BMEP = 4*pi*dbraw.torque.val/(1000*db.Vd); % kPa
+    end
+    db.theta = theta;
+    db.repIndex = Rep_index;
+
+    
+    % general calculations
+	%db.mf_diesel = db.rho_diesel*dbraw.DV_diesel.val./dbraw.Dt_diesel.val/1000; % g/s
+	%db.mf_DME = dbraw.Dm_DME.val./dbraw.Dt_DME.val; % g/s
+	%db.BMEP = 4*pi*dbraw.torque.val/(1000*db.Vd); % kPa
 
 	save(WorkDataBaseFileName,'db');
 
@@ -103,25 +124,3 @@ elseif  LoadWorkDataBase
 	load(WorkDataBaseFileName);
 
 end
-
-%========================================================================
-% Generating a plot
-Nseries = [];
-% finding the index of the relevant data for the plot:  
-index = find(~isnan(db.mf_diesel) & ~isnan(db.BMEP) & isnan(db.mf_DME) & db.N == 1200);
-
-% sort the indeces so that the data for the x axis comes in number order:
-[notused sortorder] = sort(db.mf_diesel(index));
-index = index(sortorder);
-
-figure
-plot(db.mf_diesel(index),db.BMEP(index),'+b')
-
-hold on
-
-% preparing a linear fit of the data and plotting it
-coef_dieselBMEP = polyfit(db.mf_diesel(index),db.BMEP(index),1);
-x = [0:200]/1000;
-plot(x,polyval(coef_dieselBMEP,x),'-r')
-xlabel('Diesel flow [g/s]')
-ylabel('BMEP [kPa]')

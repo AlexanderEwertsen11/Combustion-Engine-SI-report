@@ -1,4 +1,4 @@
-function [Final_Motored_signal,Final_Fired_signal, ave_pressure, Rep_index, theta] = process_engine_cycles(motored_pressure_signal, fired_pressure_signal, Encoder_resolution, TDC_shift, gain,Number_cycles, Shift)
+function [Final_Motored_signal,Final_Fired_signal, ave_pressure, Rep_index, theta] = process_engine_cycles(motored_pressure_signal, fired_pressure_signal, Encoder_resolution, TDC_shift, gain,Number_cycles)
 %PROCESS_ENGINE_CYCLES Processes engine cycle pressure data.
     %
     % SYNTAX:
@@ -20,23 +20,24 @@ function [Final_Motored_signal,Final_Fired_signal, ave_pressure, Rep_index, thet
     %   - ave_pressure            : (Vector) Average fired pressure cycle [bar]
     %   - Rep_index               : (Integer) Index of the most representative cycle
     %   - theta    
-
+Shift = false
 
 atm_pressure = 1.01325;
 n_points = 720/Encoder_resolution;       %[-] Number of points
 theta = linspace(-360,360-TDC_shift,n_points);         %[deg] Crank angle
-Number_cycles = 18;                      % Number of desired cycles 
 TDC_shift_index = TDC_shift/Encoder_resolution; %Index to add to incorporate tdc shift
 motored_pressure_signal = motored_pressure_signal*gain;
 fired_pressure_signal = fired_pressure_signal*gain;
 
 % Reshape the data into each cycle, remembering that it's a 4 stroke engine
-M_pressure_matrix = reshape(motored_pressure_signal,[n_points,20]);
-F_pressure_matrix = reshape(fired_pressure_signal,[n_points,20]);
+M_pressure_matrix = reshape(motored_pressure_signal,[n_points,Number_cycles+2]);
+F_pressure_matrix = reshape(fired_pressure_signal,[n_points,Number_cycles+2]);
 
 Index_TDC_motored = find(mean(M_pressure_matrix,2)==max(mean(M_pressure_matrix,2)))+TDC_shift_index;
 
 Stripped_motored_data = motored_pressure_signal(Index_TDC_motored+720:Number_cycles*n_points+Index_TDC_motored+719);
+
+for l = 1:2
 
 if Shift == false
     Stripped_fired_data = fired_pressure_signal(Index_TDC_motored:Number_cycles*n_points+Index_TDC_motored-1);
@@ -67,6 +68,18 @@ Final_Motored_signal = new_motored_martix-Offset_matrix_m;
 Final_Fired_signal = new_fired_matrix-Offset_matrix_f;
 
 ave_pressure = mean(Final_Fired_signal,2);
+
+% --------------------------- 
+%Check to see if it has to be shifted or not
+Index_check = find(ave_pressure==max(ave_pressure));
+
+if theta(Index_check) <-100 || theta(Index_check) > 100
+    Shift = true
+end
+% --------------------------- 
+
+end
+
 
 deviation  = sum(abs(Final_Fired_signal-ave_pressure),1)
 

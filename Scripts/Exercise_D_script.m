@@ -3,19 +3,15 @@ close all
 
 
 load 'Excerise C Matlab example package'\HCCI_group_2_1200pressurefiles\Group2-Test16.lvm
-
-p_file = Group2_Test16(:,1);            %[V] Pressure signal
-gain = 9;                  
-
-[Final_Motored_signal,Final_Fired_signal, ave_pressure, Rep_index, theta] = process_engine_cycles(p_file,p_file,0.1,180,gain,18,true);
+                
 
 %%
 close all
 %test
 
-rep_P = Final_Fired_signal(:,Rep_index);
+rep_P = db.FinalFiredSignal(:,db.repIndex);
 
-N = 1200;                           %RPM of engine
+N = 1100;                           %RPM of engine
 dt = 2*60/(N*length(rep_P));        %Time step between measurements
 
 f_sample=1/dt                       %Sample frequency

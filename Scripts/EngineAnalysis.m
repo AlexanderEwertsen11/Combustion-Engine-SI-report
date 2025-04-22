@@ -1,13 +1,13 @@
 
 function [IMEP, PMEP, V, AHRR, AHR, T] = EngineAnalysis(theta, ave_pressure, S, B, L, CR, T_intake, gamma)
 %Inputs for function
-% CR = 7;                  %[-] Compression ratio
-% B = 82.6e-3;             %[m] Bore
-% S = 114.3e-3;            %[m] Stroke length
-% L = 254e-3;              %[m] Connecting rod length
-% gamma = 1.3;             %[-] Heat capacity ratio
-n_cyl = 1;               %[-] Number of cylinders
-T1 = 300%T_intake;                %[K] Intake temperature
+% CR          %[-] Compression ratio
+% B           %[m] Bore
+% S           %[m] Stroke length
+% L           %[m] Connecting rod length
+% gamma       %[-] Heat capacity ratio
+n_cyl = 1;    %[-] Number of cylinders
+T1 = T_intake;%[K] Intake temperature
 
 theta_rads = deg2rad(theta);
 
@@ -30,7 +30,7 @@ dp = gradient(ave_pressure)./gradient(theta');
 dV = (gradient(V)./gradient(theta))';
 
 AHRR = gamma/(gamma-1)*ave_pressure.*dV+1/(gamma-1)*V'.*dp;     %[J/d_theta] Aparent heat realease rate, which is the total heat energy released per CAD
-AHR = cumsum(AHRR*gradient(theta));                             %[J] Cumulative energy release during the whole engine cycle
+AHR = cumsum(AHRR.*gradient(theta'));                           %[J] Cumulative energy release during the whole engine cycle
 
 %Ideal gas law
 R_uni = 8.314;       %[J/mol*K] the gas constant
