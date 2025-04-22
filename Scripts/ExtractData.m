@@ -50,8 +50,8 @@ if BuildRawDataBase
 	for i = 1:length(dbraw.Pressure_file.txt)
 
 		if ~isempty(dbraw.Pressure_file.txt{i})
-			dbraw.Pressure_file.val{i} = dlmread(['..\C3H8 data\',dbraw.Pressure_file.txt{i},'.txt']);
-			dbraw.motoring_file.val{i} = dlmread(['..\C3H8 data\',dbraw.Motoring_file.txt{i},'.txt']);
+			dbraw.Pressure_file.val{i} = dlmread(['..\',dbraw.DAQ_folder.txt{i},'\',dbraw.Pressure_file.txt{i},'.txt']);
+			dbraw.motoring_file.val{i} = dlmread(['..\',dbraw.DAQ_folder.txt{i},'\',dbraw.Motoring_file.txt{i},'.txt']);
 
 		end
 
