@@ -31,11 +31,12 @@ if BuildRawDataBase
     'Group' 'p_atm' 'Date' 'Fuel' 'Engine_speed' 'DAQ_folder' 'Motoring_file'
     };
     
-    VariableList2 = {'Test_nr','Ignition_timing','Lambda','CR','Torque','Air_mass_flow',...
-    'Fuel_mass_flow','T_intake','T_oil','T_exh','T_head','T_cool_out',...
-    'T_cool_in','Cool_flow','H2O','CO2','CO','NO',...
-    'NO2','CH2O','C3H8','O2','p_man','Knock',...
-    'Pressure_file','CR_sweep','Ignition_sweep','Pressure_sweep','Lambda_sweep'};
+    VariableList2 = {'Test_nr','Ignition_timing','Lambda','CR','Torque','Air_mass_flow'
+    'Fuel_mass_flow','T_intake','T_oil','T_exh','T_head','T_cool_out'
+    'T_cool_in','Cool_flow','H2O','CO2','CO','NO'
+    'NO2','CH2O','C3H8','O2','p_man','Knock'
+    'Pressure_file','CR_sweep','Ignition_sweep','Pressure_sweep','Lambda_sweep'
+};
 
 
 	% stripping all excel data into a single structure
